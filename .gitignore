@@ -1,0 +1,30 @@
+# Terraform working data and local state
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
+!*.example.tfvars.json
+
+# Local credentials and environment files
+.env
+.env.*
+*.pem
+*.key
+credentials*
+service-account*.json
+application_default_credentials.json
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/
