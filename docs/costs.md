@@ -44,3 +44,31 @@ and [GCP network pricing](https://cloud.google.com/vpc/network-pricing).
 
 Destroy removes the managed network resources. Compute, Service Usage and
 Cloud Resource Manager APIs remain enabled; API availability alone has no cost.
+
+## Phase 2
+
+Phase 2 adds one small VM and boot disk in each cloud plus private
+administrative access components. Prices vary with region, currency conversion
+and runtime; the expected combined order of magnitude while both VMs run is
+approximately `EUR 0.30-0.45/day`.
+
+| Provider | Resource | Billing behavior |
+| --- | --- | --- |
+| AWS | `t4g.nano` EC2 | Per-second compute while running, about EUR 0.10-0.15/day including its disk |
+| AWS | 8 GiB `gp3` root EBS | Provisioned storage until the volume is deleted |
+| AWS | EC2 Instance Connect Endpoint | No additional endpoint hourly charge |
+| GCP | `e2-micro` GCE | Compute while running, about EUR 0.20-0.30/day including its disk |
+| GCP | 10 GB `pd-standard` boot disk | Provisioned storage until the disk is deleted |
+| GCP | IAP TCP forwarding and firewall rule | No fixed hourly charge for this lab usage |
+
+There are no public IPv4 addresses, NAT services, VPN gateways or enabled flow
+logs. Normal SSH traffic is negligible, but provider data transfer pricing can
+still apply. The AWS EBS volume is deliberately unencrypted for this ephemeral
+lab VM; no sensitive data may be stored on it. The GCP disk uses provider-managed
+encryption by default.
+
+`terraform destroy` removes both VMs, their auto-delete boot disks, the EICE,
+firewall/security-group resources and both networks. The GCP APIs remain
+enabled because `disable_on_destroy = false`; they have no standalone cost.
+After destruction, read-only provider inventory must confirm that compute,
+disks and endpoint resources are gone.

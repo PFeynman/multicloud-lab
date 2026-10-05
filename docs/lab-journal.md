@@ -161,3 +161,94 @@ No Phase 2 resources are authorized or deployed by this iteration.
 - Phase 2 access decision: private administration through EC2 Instance Connect
   Endpoint on AWS and IAP with OS Login on GCP; no VM Internet egress.
 - Phase 2 instance preference: AWS `t4g.nano` (ARM) and GCP `e2-micro` (x86).
+
+## 2026-10-05 - Phase 2: private workloads and SSH access
+
+### Objective
+
+Deploy one minimal VM in each cloud, keep both workloads off the public
+Internet, and prove that provider-managed private administration paths can
+reach them without adding Internet egress.
+
+### Built
+
+- AWS `t4g.nano` Amazon Linux 2023 ARM64 instance at `10.10.0.10`, without a
+  public IP, using an 8 GiB `gp3` auto-delete root volume.
+- AWS EC2 Instance Connect Endpoint with a dedicated security group. The VM
+  security group accepts TCP/22 only from the EICE security group, and the
+  endpoint egress rule references the VM security group.
+- AWS IMDSv2 is required, metadata hop limit is 1 and burst credits use
+  `standard` mode. The EBS encryption exception was accepted for this
+  ephemeral VM containing no sensitive data.
+- GCP Debian 12 `e2-micro` instance at `10.30.0.10`, without an access config
+  or service account, using a 10 GB auto-delete `pd-standard` boot disk.
+- GCP classic VPC firewall rule allowing TCP/22 from IAP's
+  `35.235.240.0/20` range only to instances tagged `iap-ssh`.
+- Private administration through AWS EICE and GCP IAP TCP forwarding. GCP
+  currently uses temporary SSH keys in instance metadata; OS Login is deferred.
+
+### Decisions and Concepts
+
+- A separate firewall rule represents each security intent. The IAP SSH rule
+  will not be expanded with future application source ranges or ports.
+- `google_compute_firewall` was chosen over hierarchical or network firewall
+  policies because one VPC rule is sufficient and avoids premature policy and
+  association complexity.
+- EICE uses `preserve_client_ip = false`, enabling security-group-to-security-
+  group authorization and causing the VM to observe the endpoint ENI as source.
+- A guest default gateway does not prove Internet reachability. Cloud route
+  tables remain authoritative for traffic leaving the virtual network.
+- Both clouds expose metadata through `169.254.169.254`, but AWS IMDSv2 uses a
+  session token while GCP requires the `Metadata-Flavor: Google` header.
+- An attempted full `terraform destroy` emptied state and removed both Phase 1
+  networks as well as the initial AWS workload. A subsequent reviewed plan
+  recreated the known AWS topology and both networks before adding GCP.
+
+### Tests and Evidence
+
+- Terraform formatting and validation passed; final plan reported no changes.
+- AWS instance reported ARM64 and private address `10.10.0.10`; IMDSv1 returned
+  HTTP 401 because IMDSv2 is required. A connection to `1.1.1.1:80` timed out.
+- AWS CLI opened SSH through EICE without a public IP. The VM observed
+  `10.10.0.205:22854 -> 10.10.0.10:22`; AWS API correlated `10.10.0.205` with
+  ENI `eni-013fb211393396053` belonging to the endpoint.
+- GCP API confirmed the VM was running at `10.30.0.10`, had no public access
+  config or service account, and had only the `iap-ssh` network tag.
+- GCP API confirmed the only VPC route was `10.30.0.0/24`; there was no
+  Internet default route. No firewall existed before the explicit IAP rule.
+- SSH through IAP succeeded. The VM observed
+  `35.235.242.2:40383 -> 10.30.0.10:22`, correlating the source with IAP's
+  `35.235.240.0/20` range and the destination with the firewall rule.
+- GCP reported `x86_64`, `10.30.0.10/32`, gateway `10.30.0.1` and a special
+  route to metadata address `169.254.169.254`. HTTP to `1.1.1.1` timed out
+  after five seconds with curl exit code 28.
+- The guest route table exposed the special path to GCP metadata. GCP requires
+  the `Metadata-Flavor: Google` request header, and no workload OAuth
+  credentials are available because the VM has no service account.
+
+### Problems and Diagnosis
+
+- The first GCP SSH attempt inserted temporary metadata keys but could not
+  connect because the VPC had no ingress firewall rule. This demonstrated that
+  authentication material does not establish network reachability.
+- Querying the new firewall initially used its Terraform intent name rather
+  than its effective cloud name. Terraform state identified the deployed name
+  `multicloud-lab-allow-iap-ssh`, which was then verified successfully.
+
+### Result and Cost
+
+Phase 2 is complete. Both private VMs are isolated from the public Internet and
+from each other, but remain administrable through provider-managed tunnels.
+There is no VPN or inter-cloud route yet. Seventeen managed resources plus the
+AWS AMI data source are present in Terraform state.
+
+Expected running cost is approximately `EUR 0.30-0.45/day` for both VMs and
+disks. No NAT, public IPv4, VPN or flow-log charges exist. Normal cleanup is a
+reviewed `terraform destroy`, followed by read-only inventory of VMs, disks and
+the EICE.
+
+### Next Step
+
+Begin Phase 3 only after reviewing VPN alternatives, static versus dynamic
+routing implications, tunnel count, availability model and regional cost. No
+VPN resources are authorized by this Phase 2 completion.

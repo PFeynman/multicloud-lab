@@ -22,3 +22,8 @@ output "gcp_subnetwork_self_link" {
   description = "Self-link of the first private GCP subnet."
   value       = google_compute_subnetwork.private_subnet.self_link
 }
+
+output "aws_ami_id" {
+  description = "ID of the latest Amazon Linux 2023 AMI for ARM64 architecture."
+  value       = data.aws_ami.al2023_arm64.id
+}

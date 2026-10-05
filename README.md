@@ -12,14 +12,14 @@ pruebas verificables y actualizacion de la documentacion, los diagramas y el
 diario. Antes de crear recursos facturables revisaremos su coste y como
 eliminarlos.
 
-**Estado actual: Fases 0 y 1 completadas. Fase 2 pendiente.** Las fases posteriores son una hoja de ruta, no una autorizacion
+**Estado actual: Fases 0, 1 y 2 completadas. Fase 3 pendiente.** Las fases posteriores son una hoja de ruta, no una autorizacion
 para desplegarlas.
 
 | Fase | Trabajo y objetivo | Estado |
 | --- | --- | --- |
 | 0 — Preparacion de cuentas | Preparar cuentas AWS y GCP, credenciales, aislamiento, presupuestos y providers Terraform; verificar identidades y un plan sin cambios. | Completada |
 | 1 — Redes del laboratorio | Definir el modelo de subredes y crear una VPC propia en AWS y una VPC propia en GCP; verificar direccionamiento y aislamiento. | Completada |
-| 2 — VMs y routing local | Crear una VM minima en cada cloud y estudiar las rutas locales y los controles de acceso. | Pendiente |
+| 2 — VMs y routing local | Crear una VM minima en cada cloud y estudiar las rutas locales y los controles de acceso. | Completada |
 | 3 — VPN Site-to-Site | Elegir y configurar una VPN IPsec AWS ↔ GCP con un enfoque pedagogico; entender gateways, tuneles y rutas. | Pendiente |
 | 4 — Conectividad privada | Probar comunicacion entre IPs privadas y verificar las rutas y reglas que la permiten. | Pendiente |
 | 5 — Observabilidad | Incorporar Flow Logs, logs y metricas para correlacionar conexiones y obtener evidencia del recorrido del trafico. | Pendiente |
@@ -36,10 +36,12 @@ implementar para ajustar la secuencia de aprendizaje.
 
 ## Estado actual
 
-La Fase 1 despliega redes IPv4 aisladas: VPC AWS `10.10.0.0/16` y subred
-`10.10.0.0/24` en `eu-west-2a`; VPC GCP custom y subred `10.30.0.0/24`
-en `europe-west2`. El `/16` GCP es una reserva conceptual. No hay VMs,
-VPN ni salida a Internet. Coste esperado de estos recursos: cero.
+La Fase 2 mantiene las redes IPv4 aisladas y anade una VM privada en cada
+cloud: AWS `10.10.0.10` y GCP `10.30.0.10`. Ninguna tiene IP publica ni una
+ruta cloud por defecto hacia Internet. El acceso administrativo usa EC2
+Instance Connect Endpoint en AWS e IAP TCP forwarding en GCP. Todavia no hay
+VPN ni conectividad entre clouds. El coste conjunto estimado mientras ambas
+VMs y discos estan activos es de aproximadamente `EUR 0,30-0,45/dia`.
 
 - AWS account: perfil local `multicloud-lab`, region `eu-west-2`.
 - GCP project: `multicloud-lab-prp`, region `europe-west2`.
@@ -77,11 +79,37 @@ recursos antes de poder destruirlos de forma segura.
 
 Para eliminar la infraestructura del laboratorio, ejecutar preflight y
 `terraform -chdir=infra destroy`, revisando su plan. Las APIs GCP permanecen
-habilitadas. La eliminacion aun no se ha probado en Fase 1.
+habilitadas. Ya se comprobo que un destroy completo elimina tambien las redes,
+no solo las VMs; despues debe verificarse el inventario de ambos proveedores.
+
+## Conectar a VM de GCP
+
+```bash
+gcloud compute ssh multicloud-lab-vm \
+  --project=multicloud-lab-prp \
+  --zone=europe-west2-a \
+  --tunnel-through-iap
+```
+
+La autenticacion actual usa claves SSH temporales en metadata. OS Login esta
+diferido a una iteracion posterior.
+
+## Conectar a VM de AWS
+
+```bash
+aws ec2-instance-connect ssh \
+  --instance-id <instance-id> \
+  --os-user ec2-user \
+  --connection-type eice \
+  --eice-options endpointId=<eice-id> \
+  --profile multicloud-lab \
+  --region eu-west-2
+```
 
 ## Documentacion
 
 - [Preparacion de cuentas](docs/account-preparation.md)
 - [Arquitectura](docs/architecture.md)
+- [Routing](docs/routing.md)
 - [Costes](docs/costs.md)
 - [Diario del laboratorio](docs/lab-journal.md)
