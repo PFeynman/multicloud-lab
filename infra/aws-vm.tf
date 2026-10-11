@@ -107,3 +107,15 @@ resource "aws_instance" "multicloud_lab_vm" {
     Name = "multicloud-lab-vm"
   }
 }
+
+resource "terraform_data" "remove_stale_aws_vm_host_key" {
+  triggers_replace = [aws_instance.multicloud_lab_vm.id]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      if [ -f "$HOME/.ssh/known_hosts" ]; then
+        ssh-keygen -q -f "$HOME/.ssh/known_hosts" -R "${aws_instance.multicloud_lab_vm.private_ip}"
+      fi
+    EOT
+  }
+}

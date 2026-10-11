@@ -27,3 +27,13 @@ output "aws_ami_id" {
   description = "ID of the latest Amazon Linux 2023 AMI for ARM64 architecture."
   value       = data.aws_ami.al2023_arm64.id
 }
+
+output "aws_instance_id" {
+  description = "ID of the AWS EC2 instance."
+  value       = aws_instance.multicloud_lab_vm.id
+}
+
+output "eice_id" {
+  description = "ID of the AWS EC2 Instance Connect Endpoint (EICE)."
+  value       = aws_ec2_instance_connect_endpoint.multicloud_lab_eice.id
+}

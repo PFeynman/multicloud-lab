@@ -106,6 +106,17 @@ aws ec2-instance-connect ssh \
   --region eu-west-2
 ```
 
+Cuando Terraform crea o reemplaza la EC2,
+`terraform_data.remove_stale_aws_vm_host_key` elimina de
+`~/.ssh/known_hosts` la clave anterior asociada a `10.10.0.10`.
+Esto evita conflictos entre distintas encarnaciones de la instancia sin
+desactivar `StrictHostKeyChecking`. En la primera conexion a la instancia
+nueva, SSH solicita aceptar su nueva clave de host.
+
+La sincronizacion se ejecuta solo cuando cambia el ID de la instancia. Un
+`terraform apply` sin cambios y `terraform destroy` no modifican
+`known_hosts`.
+
 ## Documentacion
 
 - [Preparacion de cuentas](docs/account-preparation.md)
