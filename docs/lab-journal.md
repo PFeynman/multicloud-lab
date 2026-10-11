@@ -252,3 +252,84 @@ the EICE.
 Begin Phase 3 only after reviewing VPN alternatives, static versus dynamic
 routing implications, tunnel count, availability model and regional cost. No
 VPN resources are authorized by this Phase 2 completion.
+
+## 2026-10-11 - Phase 3: IPsec VPN and BGP control plane
+
+### Objective
+
+Establish managed IPsec between AWS and GCP, bring up dynamic route exchange,
+and verify both providers agree on tunnel, BGP and route state. Workload traffic
+is intentionally deferred to Phase 4.
+
+### Built
+
+- AWS Customer Gateway representing GCP HA VPN interface 0 and ASN `65432`.
+- AWS Virtual Private Gateway using ASN `65433`, attached to the lab VPC.
+- One AWS Site-to-Site VPN connection with two generated tunnel endpoints,
+  PSKs and link-local `/30` ranges.
+- Route propagation from the Virtual Private Gateway into the custom private
+  subnet route table.
+- GCP HA VPN gateway, external peer gateway representing two AWS outside IPs,
+  and two IKEv2 tunnels terminating on GCP interface 0.
+- GCP Cloud Router with two numbered interfaces and two BGP peers.
+
+### Decisions and Concepts
+
+- HA VPN with BGP replaced the earlier Classic VPN/static-routing proposal.
+- The initial growth stage uses two tunnels from one AWS VPN connection. It
+  gains dynamic routing and tunnel redundancy but does not use GCP interface 1
+  and does not qualify for the complete 99.99% topology.
+- AWS-generated PSKs and inside addresses are referenced directly by GCP
+  resources rather than copied into configuration or outputs.
+- AWS advertises its VPC `/16`; GCP advertises the deployed regional subnet
+  `/24`, not the conceptual GCP `/16` planning reservation.
+- Routing and packet authorization remain separate. Healthy BGP does not prove
+  that security groups and firewalls permit workload traffic.
+
+### Tests and Evidence
+
+- Terraform formatting and validation passed; final plan reported no changes.
+- Both GCP tunnels reported `ESTABLISHED` and `Tunnel is up and running`.
+- Both GCP BGP peers reported `UP` and `Established`; each learned one route
+  and advertised `10.30.0.0/24`.
+- Cloud Router selected `10.10.0.0/16` with AS path `65433` and priority 100.
+- Both AWS tunnels reported `UP`, `1 BGP ROUTES` and one accepted route.
+- The AWS private route table contained active propagated route
+  `10.30.0.0/24 -> Virtual Private Gateway` alongside its local `/16` route.
+- GCP learned the AWS `/16` from both peers. No cross-cloud ping or application
+  request was performed in this phase.
+
+### Problems and Diagnosis
+
+- Passing the Cloud Router Terraform ID to standalone interface resources
+  caused an inconsistent-result provider error; using the router name allowed
+  the resources to persist correctly.
+- Automatic GCP link-local allocation did not match AWS-assigned inside tunnel
+  addresses. Explicit `cgw_inside_address/30` and `vgw_inside_address` values
+  aligned each Cloud Router interface and peer with AWS.
+- Updating interface addresses while old BGP peers remained attached caused a
+  Cloud Router atomic validation error. A clean deployment created the final
+  dependency order successfully.
+- The second tunnel initially targeted GCP interface 1, but both tunnels from
+  one AWS VPN connection target the single Customer Gateway address on GCP
+  interface 0. Correcting the interface brought IPsec up.
+- GCP warns that the HA VPN gateway is not configured correctly because
+  interface 1 is unused. This is an expected availability warning, not a
+  tunnel or BGP fault.
+
+### Result and Cost
+
+Phase 3 is complete. The IPsec and BGP control plane is healthy in both clouds,
+and each VPC has an active route to the other's deployed address range. The
+topology has two working tunnels but is intentionally not fully HA.
+
+Expected total running cost is approximately `EUR 3.5-4.5/day`, dominated by
+the AWS VPN connection and two GCP tunnels. All infrastructure is normally
+destroyed at the end of each session to stop hourly charges.
+
+### Next Step
+
+Phase 4 will authorize one explicit cross-cloud flow between `10.10.0.10` and
+`10.30.0.10`, run the network test from both directions where useful, and
+correlate source, destination, route and tunnel evidence. No Phase 4 firewall
+or security-group change is included in this iteration.

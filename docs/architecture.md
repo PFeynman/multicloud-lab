@@ -1,6 +1,6 @@
 # Architecture
 
-## Phase 2 - private workloads and administrative access
+## Phase 3 - IPsec and dynamic routing control plane
 
 AWS has a regional VPC CIDR. GCP has a global custom-mode VPC with a regional
 subnet; `10.30.0.0/16` is a planning reservation, not a VPC attribute.
@@ -14,10 +14,16 @@ flowchart TB
       SUB["Subnet 10.10.0.0/24 - eu-west-2a"]
       EICE["EC2 Instance Connect Endpoint<br/>private ENI + EICE SG"]
       EC2["EC2 t4g.nano<br/>10.10.0.10, no public IP<br/>VM SG"]
-      RT["Explicit route table<br/>10.10.0.0/16 -> local"]
+      RT["Private route table<br/>10.10.0.0/16 -> local<br/>10.30.0.0/24 -> propagated VGW"]
+      VGW["Virtual Private Gateway<br/>ASN 65433"]
       SUB -->|associated| RT
       EICE -->|"TCP/22, SG to SG"| EC2
+      VGW -->|"BGP route propagation"| RT
     end
+    CGW["Customer Gateway<br/>GCP interface 0<br/>ASN 65432"]
+    VPN["AWS Site-to-Site VPN<br/>2 tunnel endpoints"]
+    CGW --- VPN
+    VPN --- VGW
     DEFAULT["Default VPC 172.31.0.0/16 - out of scope"]
   end
 
@@ -28,20 +34,28 @@ flowchart TB
       GR["Automatic subnet route: 10.30.0.0/24"]
       FW["Ingress firewall<br/>TCP/22 from IAP<br/>target tag: iap-ssh"]
       GCE["GCE e2-micro<br/>10.30.0.10, no public IP<br/>tag: iap-ssh"]
+      CR["Cloud Router<br/>ASN 65432<br/>learned 10.10.0.0/16"]
+      HAVPN["HA VPN gateway<br/>interface 0 active<br/>interface 1 unused"]
       GS --- GR
       FW --> GCE
+      CR -->|"dynamic route"| GR
     end
+    EXTVPN["External VPN gateway<br/>2 AWS outside IPs"]
+    EXTVPN --- HAVPN
+    HAVPN --- CR
   end
 
   ADMIN -->|"AWS CLI + temporary SSH key"| EICE
   ADMIN -->|"gcloud SSH tunnel"| IAP
   IAP --> FW
+  VPN ==>|"tunnel 1: IPsec + BGP"| EXTVPN
+  VPN ==>|"tunnel 2: IPsec + BGP"| EXTVPN
 ```
 
-No Internet default route, Internet gateway, NAT or VPN is deployed in either
-lab network. GCP default Internet routes are deleted during network creation.
-The VMs are reachable for administration only through provider-managed private
-access paths; they cannot communicate with each other yet.
+No Internet default route, Internet gateway or NAT is deployed in either lab
+network. The VPN control plane is healthy and exchanges both cloud prefixes.
+The VMs remain reachable for administration through EICE and IAP. Workload
+traffic between them has not been authorized or tested yet.
 
 AWS DNS resolution is enabled and DNS hostnames are disabled. The GCP VPC uses
 regional dynamic routing mode and MTU 1460; its subnet is IPv4-only and Private
@@ -81,6 +95,27 @@ The observed GCP SSH connection was
 IAP range and matched the firewall rule targeting the VM's `iap-ssh` tag.
 Authentication currently uses temporary SSH keys in instance metadata; OS
 Login remains a possible hardening iteration.
+
+## VPN control plane
+
+```mermaid
+sequenceDiagram
+  participant GCP as Cloud Router ASN 65432
+  participant T1 as IPsec tunnel 1
+  participant T2 as IPsec tunnel 2
+  participant AWS as VGW ASN 65433
+  GCP->>T1: Advertise 10.30.0.0/24
+  GCP->>T2: Advertise 10.30.0.0/24
+  T1->>AWS: BGP established
+  T2->>AWS: BGP established
+  AWS-->>T1: Advertise 10.10.0.0/16
+  AWS-->>T2: Advertise 10.10.0.0/16
+```
+
+Both tunnels terminate on GCP HA VPN interface `0` because one AWS Customer
+Gateway can reference only one GCP outside IP. GCP therefore warns that the HA
+VPN gateway is not fully redundant. This is expected: interface `1` remains
+unused until a second AWS VPN connection adds tunnels 3 and 4.
 
 ## Address plan
 

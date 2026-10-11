@@ -72,3 +72,26 @@ firewall/security-group resources and both networks. The GCP APIs remain
 enabled because `disable_on_destroy = false`; they have no standalone cost.
 After destruction, read-only provider inventory must confirm that compute,
 disks and endpoint resources are gone.
+
+## Phase 3
+
+Phase 3 adds one AWS Site-to-Site VPN connection and two billed GCP Cloud VPN
+tunnels. Cloud Router, route propagation and the gateway objects do not add a
+separate hourly charge in this topology.
+
+| Provider | Resource | Approximate charge |
+| --- | --- | --- |
+| AWS | One Site-to-Site VPN connection | About USD 0.05/hour |
+| AWS | Managed public tunnel IPv4 addresses | Standard public IPv4 hourly pricing |
+| GCP | Two Cloud VPN tunnels | USD 0.05/hour per tunnel |
+| Both | Inter-cloud egress | Variable by direction and transferred volume |
+
+The VPN control plane is approximately USD 0.16/hour or USD 3.84/day before
+currency conversion and data transfer. Including Phase 2 compute and disks,
+the expected lab total is approximately `EUR 3.5-4.5/day`. This remains active
+while idle, so the normal session ends with `terraform destroy`.
+
+Destroy removes the AWS VPN connection, Virtual Private Gateway, Customer
+Gateway, GCP tunnels, HA VPN gateway, external gateway and Cloud Router. The
+GCP APIs remain enabled without standalone cost. Small connectivity tests add
+negligible egress, but later throughput tests require a separate estimate.

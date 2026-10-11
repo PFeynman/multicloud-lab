@@ -51,9 +51,38 @@ route. The ingress firewall allows TCP/22 only from `35.235.240.0/20` to VMs
 tagged `iap-ssh`. The VM observed source `35.235.242.2`, proving that the
 connection arrived through the IAP proxy range.
 
-## Inter-cloud State
+## Phase 3 Dynamic Routes
 
-There is no route from AWS to `10.30.0.0/16` and no route from GCP to
-`10.10.0.0/16`. The two VMs are privately administrable but cannot communicate
-with each other. Phase 3 will introduce the VPN components and explicit route
-decisions; no VPN design is implied by the current route tables.
+Cloud Router ASN `65432` and AWS Virtual Private Gateway ASN `65433` maintain
+two BGP sessions, one for each IPsec tunnel. Both sessions are established.
+
+### AWS learned route
+
+| Destination | Target | Origin | State |
+| --- | --- | --- | --- |
+| `10.10.0.0/16` | `local` | VPC local route | Active |
+| `10.30.0.0/24` | Virtual Private Gateway | VGW propagation | Active |
+
+The AWS route table receives `10.30.0.0/24` because
+`aws_vpn_gateway_route_propagation` is enabled for the private subnet route
+table. Each AWS tunnel reports one accepted BGP route.
+
+### GCP learned route
+
+Cloud Router learns `10.10.0.0/16` from both peers with AS path `65433` and
+priority 100. It advertises the regional GCP subnet `10.30.0.0/24` to both AWS
+tunnels. The VPC remains in `REGIONAL` dynamic routing mode; this is sufficient
+while the only GCP subnet and Cloud Router are both in `europe-west2`.
+
+Two equal BGP advertisements do not imply that AWS Virtual Private Gateway
+uses ECMP. A VGW selects one tunnel for AWS-originated traffic and retains the
+other as an available path. Tunnel and BGP health therefore prove control-plane
+reachability, not symmetric workload traffic or load balancing.
+
+### Data-plane boundary
+
+Routes now exist in both directions, but routing does not authorize packets.
+The current AWS security group and GCP firewall rules only support the existing
+administrative access paths. Phase 4 will add the smallest cross-cloud rule,
+test traffic between `10.10.0.10` and `10.30.0.10`, and correlate the selected
+route and tunnel.

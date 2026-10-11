@@ -64,3 +64,19 @@ Append a concise entry to `docs/lab-journal.md` after each completed iteration c
 - next proposed step.
 
 Documentation should explain reasoning and evidence, not merely restate Terraform resources.
+
+## Bibliography and external sources
+
+Maintain `docs/references.md` as the project bibliography.
+
+- Whenever an external technical link is shared with the user, add it to
+  `docs/references.md` in the same iteration.
+- Group references by phase and topic. Record the source title, canonical URL,
+  why it is relevant and the date reviewed when behavior or pricing can change.
+- Prefer primary sources such as official provider documentation, product
+  documentation, pricing pages and Terraform Registry provider pages.
+- Do not add search-result, redirect, session-specific or temporary URLs.
+- Distinguish current provider recommendations from deliberate lab choices,
+  especially when the lab uses a legacy or non-production topology for
+  educational reasons.
+- Keep the bibliography linked from `README.md`.

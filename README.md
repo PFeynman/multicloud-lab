@@ -12,7 +12,7 @@ pruebas verificables y actualizacion de la documentacion, los diagramas y el
 diario. Antes de crear recursos facturables revisaremos su coste y como
 eliminarlos.
 
-**Estado actual: Fases 0, 1 y 2 completadas. Fase 3 pendiente.** Las fases posteriores son una hoja de ruta, no una autorizacion
+**Estado actual: Fases 0, 1, 2 y 3 completadas. Fase 4 pendiente.** Las fases posteriores son una hoja de ruta, no una autorizacion
 para desplegarlas.
 
 | Fase | Trabajo y objetivo | Estado |
@@ -20,11 +20,11 @@ para desplegarlas.
 | 0 — Preparacion de cuentas | Preparar cuentas AWS y GCP, credenciales, aislamiento, presupuestos y providers Terraform; verificar identidades y un plan sin cambios. | Completada |
 | 1 — Redes del laboratorio | Definir el modelo de subredes y crear una VPC propia en AWS y una VPC propia en GCP; verificar direccionamiento y aislamiento. | Completada |
 | 2 — VMs y routing local | Crear una VM minima en cada cloud y estudiar las rutas locales y los controles de acceso. | Completada |
-| 3 — VPN Site-to-Site | Elegir y configurar una VPN IPsec AWS ↔ GCP con un enfoque pedagogico; entender gateways, tuneles y rutas. | Pendiente |
+| 3 — VPN Site-to-Site | Elegir y configurar una VPN IPsec AWS ↔ GCP con un enfoque pedagogico; entender gateways, tuneles y rutas. | Completada |
 | 4 — Conectividad privada | Probar comunicacion entre IPs privadas y verificar las rutas y reglas que la permiten. | Pendiente |
 | 5 — Observabilidad | Incorporar Flow Logs, logs y metricas para correlacionar conexiones y obtener evidencia del recorrido del trafico. | Pendiente |
 | 6 — Trafico privado e Internet | Comparar conexiones hacia la otra cloud y hacia Internet, demostrando la ruta utilizada en cada caso. | Pendiente |
-| 7 — BGP | Introducir o profundizar en el intercambio dinamico de rutas y compararlo con routing estatico, segun la VPN elegida. | Pendiente |
+| 7 — BGP avanzado y crecimiento | Ampliar a cuatro tuneles, estudiar seleccion y failover de rutas y profundizar en anuncios BGP. | Pendiente |
 | 8 — Diagnostico de fallos | Provocar fallos controlados de routing y VPN, diagnosticarlos mediante logs y metricas y recuperar la conectividad. | Pendiente |
 | 9 — Azure | Preparar Azure e incorporar una VNet con CIDR `10.20.0.0/16` a la conectividad privada. | Pendiente |
 | 10 — Arquitecturas avanzadas | Estudiar hub-and-spoke y transit routing con AWS Transit Gateway, Azure Virtual WAN y GCP Network Connectivity Center; revisar costes antes de cualquier despliegue. | Pendiente |
@@ -36,12 +36,12 @@ implementar para ajustar la secuencia de aprendizaje.
 
 ## Estado actual
 
-La Fase 2 mantiene las redes IPv4 aisladas y anade una VM privada en cada
-cloud: AWS `10.10.0.10` y GCP `10.30.0.10`. Ninguna tiene IP publica ni una
-ruta cloud por defecto hacia Internet. El acceso administrativo usa EC2
-Instance Connect Endpoint en AWS e IAP TCP forwarding en GCP. Todavia no hay
-VPN ni conectividad entre clouds. El coste conjunto estimado mientras ambas
-VMs y discos estan activos es de aproximadamente `EUR 0,30-0,45/dia`.
+La Fase 3 conecta el control plane de routing entre AWS y GCP mediante dos
+tuneles IPsec y dos sesiones BGP. AWS aprende `10.30.0.0/24` y GCP aprende
+`10.10.0.0/16`. Los dos tuneles terminan deliberadamente en la interfaz `0`
+del HA VPN gateway; la interfaz `1` queda reservada para una futura ampliacion
+a cuatro tuneles, por lo que esta topologia no tiene SLA HA completo. La Fase 4
+habilitara y probara trafico entre `10.10.0.10` y `10.30.0.10`.
 
 - AWS account: perfil local `multicloud-lab`, region `eu-west-2`.
 - GCP project: `multicloud-lab-prp`, region `europe-west2`.
@@ -111,5 +111,7 @@ aws ec2-instance-connect ssh \
 - [Preparacion de cuentas](docs/account-preparation.md)
 - [Arquitectura](docs/architecture.md)
 - [Routing](docs/routing.md)
+- [VPN e IPsec](docs/vpn.md)
 - [Costes](docs/costs.md)
 - [Diario del laboratorio](docs/lab-journal.md)
+- [Bibliografia y fuentes](docs/references.md)
