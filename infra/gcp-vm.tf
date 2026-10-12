@@ -33,3 +33,14 @@ resource "google_compute_firewall" "allow_iap_ssh" {
   source_ranges = ["35.235.240.0/20"]
   target_tags   = ["iap-ssh"]
 }
+
+resource "google_compute_firewall" "allow_icmp" {
+  name    = "multicloud-lab-allow-icmp"
+  network = google_compute_network.multicloud_lab_vpc.name
+
+  allow {
+    protocol = "icmp"
+  }
+
+  source_ranges = [aws_subnet.private_subnet.cidr_block]
+}

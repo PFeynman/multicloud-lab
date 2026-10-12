@@ -46,6 +46,32 @@ resource "aws_vpc_security_group_ingress_rule" "allow_ssh" {
   }
 }
 
+resource "aws_vpc_security_group_egress_rule" "allow_icmp" {
+  security_group_id = aws_security_group.multicloud_lab_vm_sg.id
+
+  cidr_ipv4   = google_compute_subnetwork.private_subnet.ip_cidr_range
+  ip_protocol = "icmp"
+  from_port   = -1
+  to_port     = -1
+
+  tags = {
+    Name = "allow_icmp_to_gcp"
+  }
+}
+
+resource "aws_vpc_security_group_ingress_rule" "allow_icmp" {
+  security_group_id = aws_security_group.multicloud_lab_vm_sg.id
+
+  cidr_ipv4   = google_compute_subnetwork.private_subnet.ip_cidr_range
+  ip_protocol = "icmp"
+  from_port   = -1
+  to_port     = -1
+
+  tags = {
+    Name = "allow_icmp_from_gcp"
+  }
+}
+
 resource "aws_security_group" "multicloud_lab_eice_sg" {
   name        = "multicloud-lab-eice-sg"
   description = "Security group for the multicloud lab EICE."
