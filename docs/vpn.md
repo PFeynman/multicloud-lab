@@ -47,6 +47,25 @@ AWS route propagation is enabled only on the custom route table associated
 with the private subnet. GCP uses regional dynamic routing, so learned routes
 currently apply to `europe-west2` resources.
 
+## Phase 4 and 5 Data Plane
+
+Phase 4 added explicit ICMP authorization and verified private communication
+between EC2 `10.10.0.10` and GCE `10.30.0.10` in both directions. The source
+and destination addresses, learned routes and successful replies establish
+that the workloads can exchange traffic through the VPN rather than a public
+path: neither VM has a public address and AWS has no default Internet route.
+
+Phase 5 reused the same routed path for HTTPS from GCP to private AWS Interface
+Endpoint ENIs. The endpoint security group accepts TCP/443 from
+`10.30.0.0/24`, and AWS has the propagated return route. Successful STS and S3
+operations establish application-level reachability through those private
+endpoint addresses.
+
+This evidence has limits. A healthy BGP session proves route exchange, and a
+successful request proves end-to-end behavior, but neither alone identifies
+the exact tunnel used for every packet. VPC Flow Logs and endpoint ENI flow
+records are not enabled yet. Phase 6 will add that cloud-native correlation.
+
 ## Troubleshooting Lessons
 
 - `google_compute_router_interface.router` requires the router name. Passing
@@ -69,3 +88,7 @@ set rather than an explicitly narrowed cipher suite. Initial negotiation is
 successful, but a long-lived rekey has not been observed. This is acceptable
 for the short-lived lab and should be revisited before treating the design as a
 production baseline.
+
+Both tunnels still terminate on GCP HA VPN interface `0`, and each Interface
+Endpoint currently has one ENI in one AWS Availability Zone. These are explicit
+lab simplifications, not a highly available service-access design.

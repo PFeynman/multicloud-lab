@@ -41,13 +41,16 @@ Preserve non-overlapping address space as the lab evolves.
 - Phase 1: create dedicated AWS and GCP networks.
 - Phase 2: deploy minimal workloads and study local routing.
 - Phase 3: establish AWS <-> GCP Site-to-Site IPsec VPN.
-- Phase 4: prove private connectivity.
-- Phase 5: add cloud-native flow visibility and observability.
-- Phase 6: demonstrate and compare private versus public traffic paths.
-- Phase 7: introduce BGP and dynamic route exchange.
-- Phase 8: deliberately create routing/VPN failures and diagnose them from evidence.
-- Phase 9: introduce Azure using `10.20.0.0/16`.
-- Phase 10: explore transit/hub-and-spoke services and architectures.
-- Phase 11: study production dedicated-connectivity alternatives conceptually unless their cost is explicitly accepted.
+- Phase 4: prove private workload connectivity.
+- Phase 5: access cloud services privately and federate workload identity across clouds.
+- Phase 6: add cloud-native flow visibility and observability.
+- Phase 7: demonstrate and compare private versus public traffic paths.
+- Phase 8: expand and study BGP, route selection and failover.
+- Phase 9: deliberately create routing/VPN failures and diagnose them from evidence.
+- Phase 10: introduce Azure using `10.20.0.0/16`.
+- Phase 11: explore transit/hub-and-spoke services and architectures.
+- Phase 12: study production dedicated-connectivity alternatives conceptually unless their cost is explicitly accepted.
 
-Possible optional later phase: AWS Gateway/Interface VPC Endpoints, PrivateLink, and GCP Private Service Connect to compare service-private-access paths with VPN and Internet paths.
+Phase 5 introduced AWS Gateway and Interface VPC Endpoints and PrivateLink.
+GCP Private Service Connect remains an optional later topic for comparing
+service-private-access paths with VPN and Internet paths.

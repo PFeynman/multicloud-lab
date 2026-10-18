@@ -1,88 +1,89 @@
 # Routing
 
-## Phase 2 Baseline
+## Historical baseline
 
-Neither cloud has a cloud-level default route to the Internet. A route creates
-reachability but does not authorize traffic; AWS security groups and GCP
-firewall rules independently control which matching flows are accepted.
+Phase 2 intentionally had no cloud-level default route and no inter-cloud
+route. Phase 3 introduced BGP. Phase 4 authorized workload traffic, and Phase 5
+added routes for private service access. Guest default gateways alone never
+proved cloud reachability; provider route tables remain authoritative.
 
-## AWS
+## Current AWS routes
 
-The private subnet `10.10.0.0/24` is associated with an explicit route table.
-Its only active route is the automatic VPC-local route:
+The AWS private subnet `10.10.0.0/24` uses one explicit route table:
 
-| Destination | Target | Purpose |
+| Destination | Target | Origin and purpose |
 | --- | --- | --- |
-| `10.10.0.0/16` | `local` | Communication within the AWS VPC |
+| `10.10.0.0/16` | `local` | Automatic VPC-local route |
+| `10.30.0.0/24` | Virtual Private Gateway | Propagated BGP route to GCP |
+| S3 managed prefix list | S3 Gateway Endpoint | Private EC2-to-S3 path |
 
-The EC2 guest has address `10.10.0.10` and reports a default gateway supplied
-by the VPC. That guest route does not create an Internet path: the VPC route
-table has no `0.0.0.0/0`, Internet Gateway or NAT target.
+There is no AWS `0.0.0.0/0`, Internet Gateway or NAT route. The EC2 instance
+can reach S3 because AWS inserts the service prefix-list route when the Gateway
+Endpoint is associated with this route table. Its security group independently
+permits TCP/443 only to that prefix list.
 
-Administrative SSH does not depend on Internet routing. EC2 Instance Connect
-Endpoint opens a private tunnel and its ENI reaches the instance through the
-VPC-local route. With `preserve_client_ip = false`, the VM observed source
-`10.10.0.205`, the EICE ENI address, and destination `10.10.0.10:22`.
+The S3 and STS Interface Endpoint ENIs are inside `10.10.0.0/24`. Traffic from
+GCP reaches those private addresses through the advertised AWS `/16`; return
+traffic uses the propagated `10.30.0.0/24` route. Security groups are stateful,
+so accepted inbound endpoint connections allow their response traffic.
 
-## GCP
+## Current GCP routes
 
-The custom-mode VPC has one automatic subnet route:
+The GCP VPC has these relevant effective routes:
 
 | Destination | Next hop | Purpose |
 | --- | --- | --- |
-| `10.30.0.0/24` | VPC subnet | Communication with the regional subnet |
+| `10.30.0.0/24` | Subnet | Automatic local subnet route |
+| `10.10.0.0/16` | HA VPN/Cloud Router | Dynamic route learned from AWS |
+| `0.0.0.0/0` | Default internet gateway | Required route shape for Private Google Access |
+| `169.254.169.254/32` | GCE metadata path | Link-local metadata and identity service |
 
-The default Internet routes were deleted when the VPC was created. Inside the
-guest, Linux reports `10.30.0.10/32` and these relevant routes:
+The VPC was created with `delete_default_routes_on_create = true`; Phase 5 adds
+one explicit replacement default route. The VM still has no external IP and no
+Cloud NAT. Therefore this route does not offer arbitrary Internet egress.
+Private Google Access allows eligible Google APIs, including Cloud Storage, to
+use the route from a VM with only an internal address.
 
-```text
-default via 10.30.0.1 dev ens4
-10.30.0.1 dev ens4 scope link
-169.254.169.254 via 10.30.0.1 dev ens4
-```
+## Route selection examples
 
-GCE's `/32` guest model and guest default gateway do not imply that a matching
-cloud route exists. A request to `http://1.1.1.1` timed out because the VPC has
-no `0.0.0.0/0` route. The special link-local route still provides access to
-the GCP metadata server when requests include `Metadata-Flavor: Google`.
+### GCE to AWS endpoints
 
-IAP TCP forwarding also does not require a VM public IP or Internet default
-route. The ingress firewall allows TCP/22 only from `35.235.240.0/20` to VMs
-tagged `iap-ssh`. The VM observed source `35.235.242.2`, proving that the
-connection arrived through the IAP proxy range.
+The Interface Endpoint private IP belongs to `10.10.0.0/16`. The learned `/16`
+is more specific than `0.0.0.0/0`, so GCP selects the VPN route. AWS returns to
+`10.30.0.10` through its propagated `/24`. The GCP default internet gateway is
+not in this flow.
 
-## Phase 3 Dynamic Routes
+### GCE to Cloud Storage
 
-Cloud Router ASN `65432` and AWS Virtual Private Gateway ASN `65433` maintain
-two BGP sessions, one for each IPsec tunnel. Both sessions are established.
+Public Google API addresses match `0.0.0.0/0`. The next hop is the default
+internet gateway, but Private Google Access authorizes the special Google API
+path for the internal-only VM. A successful download does not imply that an
+arbitrary public destination is reachable.
 
-### AWS learned route
+### GCE to metadata
 
-| Destination | Target | Origin | State |
-| --- | --- | --- | --- |
-| `10.10.0.0/16` | `local` | VPC local route | Active |
-| `10.30.0.0/24` | Virtual Private Gateway | VGW propagation | Active |
+The metadata request selects the link-local path to `169.254.169.254`; neither
+the VPN nor Private Google Access is involved. This is where the VM obtains its
+Google-signed OIDC identity token.
 
-The AWS route table receives `10.30.0.0/24` because
-`aws_vpn_gateway_route_propagation` is enabled for the private subnet route
-table. Each AWS tunnel reports one accepted BGP route.
+### EC2 to S3
 
-### GCP learned route
+The S3 managed prefix-list route is more specific than any absent default
+route, selecting the Gateway Endpoint. Gateway Endpoints are not transitive,
+which is why GCP needs a separate S3 Interface Endpoint.
 
-Cloud Router learns `10.10.0.0/16` from both peers with AS path `65433` and
-priority 100. It advertises the regional GCP subnet `10.30.0.0/24` to both AWS
-tunnels. The VPC remains in `REGIONAL` dynamic routing mode; this is sufficient
-while the only GCP subnet and Cloud Router are both in `europe-west2`.
+## Routing versus authorization
 
-Two equal BGP advertisements do not imply that AWS Virtual Private Gateway
-uses ECMP. A VGW selects one tunnel for AWS-originated traffic and retains the
-other as an available path. Tunnel and BGP health therefore prove control-plane
-reachability, not symmetric workload traffic or load balancing.
+Routes select a next hop; they do not grant access. The verified flows also
+depend on:
 
-### Data-plane boundary
+- AWS security-group ICMP rules for Phase 4;
+- the GCP ICMP firewall rule;
+- endpoint SG ingress TCP/443 from `10.30.0.0/24`;
+- EC2 instance-profile permissions;
+- Google Cloud Storage bucket IAM;
+- OIDC claims matching the AWS role trust policy;
+- temporary-role permissions for S3.
 
-Routes now exist in both directions, but routing does not authorize packets.
-The current AWS security group and GCP firewall rules only support the existing
-administrative access paths. Phase 4 will add the smallest cross-cloud rule,
-test traffic between `10.10.0.10` and `10.30.0.10`, and correlate the selected
-route and tunnel.
+Phase 6 will add flow logs so route reasoning can be correlated with observed
+source, destination, action and interface data.

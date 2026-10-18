@@ -95,3 +95,44 @@ Destroy removes the AWS VPN connection, Virtual Private Gateway, Customer
 Gateway, GCP tunnels, HA VPN gateway, external gateway and Cloud Router. The
 GCP APIs remain enabled without standalone cost. Small connectivity tests add
 negligible egress, but later throughput tests require a separate estimate.
+
+## Phase 4
+
+The ICMP security-group and firewall rules add no direct charge. The Phase 4
+tests use the existing VPN and compute resources, so their only incremental
+cost is negligible inter-cloud data transfer.
+
+## Phase 5
+
+Phase 5 adds two billed AWS Interface Endpoints plus low-volume object storage
+and API operations. The S3 Gateway Endpoint has no hourly endpoint charge.
+
+| Provider | Resource | Billing behavior |
+| --- | --- | --- |
+| AWS | S3 Gateway Endpoint | No hourly or endpoint data-processing charge |
+| AWS | S3 Interface Endpoint | Charged per endpoint AZ-hour and per GB processed |
+| AWS | STS Interface Endpoint | Charged per endpoint AZ-hour and per GB processed |
+| AWS | S3 bucket | Storage, requests and any applicable data transfer |
+| GCP | Cloud Storage bucket | About 74 MB stored plus operations and applicable transfer |
+| GCP | Private Google Access and route | No fixed hourly charge |
+| Both | Cross-cloud service traffic | Variable egress by direction and volume |
+
+At the first PrivateLink pricing tier, one endpoint ENI is approximately
+`USD 0.01/hour`; two single-AZ Interface Endpoints add about `USD 0.48/day`
+while provisioned. Adding this to the Phase 3 VPN and Phase 2 compute estimate
+puts the whole active lab around `EUR 4-5/day`, before currency conversion and
+meaningful data transfer. IAM roles, service accounts and ordinary STS calls do
+not add a fixed hourly charge.
+
+The GCS bucket has a provider-default soft-delete policy. Deleting the bucket
+does not necessarily make recoverable bytes disappear immediately; retention
+and billing behavior should be checked after cleanup.
+
+Normal `terraform destroy` should remove both Interface Endpoints and their
+ENIs, the S3 Gateway Endpoint and prefix-list route, both test buckets and
+objects, IAM roles and attachments, the instance profile, service account,
+bucket IAM binding, explicit GCP route, VPN and compute resources. Compute,
+Service Usage, Cloud Resource Manager and IAM APIs remain enabled because their
+resources use `disable_on_destroy = false`; enabled APIs alone have no fixed
+cost. Read-only provider inventories must confirm that all hourly endpoints,
+VPNs, VMs, disks and retained storage are gone.

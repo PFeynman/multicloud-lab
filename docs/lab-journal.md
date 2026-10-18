@@ -333,3 +333,214 @@ Phase 4 will authorize one explicit cross-cloud flow between `10.10.0.10` and
 `10.30.0.10`, run the network test from both directions where useful, and
 correlate source, destination, route and tunnel evidence. No Phase 4 firewall
 or security-group change is included in this iteration.
+
+## 2026-10-11 - Phase 4: private workload connectivity
+
+### Objective
+
+Authorize and test ICMP between EC2 `10.10.0.10` and GCE `10.30.0.10` using the
+private routes learned during Phase 3.
+
+### Built and Learned
+
+- Added AWS security-group ingress and egress ICMP rules scoped to the GCP
+  subnet `10.30.0.0/24`.
+- Added a GCP firewall rule allowing ICMP from AWS subnet `10.10.0.0/24` to the
+  VPC workloads.
+- Reused the existing propagated and dynamic routes; no static inter-cloud
+  route was needed.
+- Confirmed that AWS security groups are stateful and that GCP also has implied
+  allow-egress plus stateful return handling.
+- Chose subnet ranges rather than individual `/32` addresses so future lab VMs
+  can participate without one firewall rule per instance.
+
+### Problems and Diagnosis
+
+The first ping did not receive replies. Diagnosis separated routing from
+authorization and checked effective routes, rules in state and the different
+AWS/GCP firewall models instead of changing multiple components at once.
+
+### Result
+
+This iteration established the intended Phase 4 policy. Final bidirectional
+verification and the phase close were recorded the following day.
+
+## 2026-10-12 - Phase 4 completion and Phase 5 start
+
+### Phase 4 Evidence
+
+- Private ICMP communication between `10.10.0.10` and `10.30.0.10` succeeded.
+- Neither workload had a public IP; AWS had no default Internet route.
+- AWS and GCP already exposed the corresponding propagated/dynamic routes, so
+  the successful test correlated private addresses, route selection, VPN and
+  workload authorization.
+- Flow logs were not enabled, so the evidence did not identify a specific
+  tunnel for each packet.
+
+Phase 4 is complete.
+
+### Phase 5 Objective
+
+Allow each workload to reach Amazon S3 privately, then extend the GCP path with
+temporary AWS credentials rather than long-lived keys.
+
+### AWS S3 Path
+
+- Added an EC2 IAM role, shared S3 policy and instance profile.
+- The policy deliberately allows broad `s3:*` access for this ephemeral lab.
+- Added a private S3 test bucket with public access blocked.
+- Added an S3 Gateway Endpoint associated with the private subnet route table.
+- Restricted EC2 HTTPS egress to the endpoint's S3 managed prefix list.
+- A direct S3 request timed out before the endpoint existed. After the Gateway
+  Endpoint and route-table association were correct, `aws s3api list-buckets`
+  succeeded with instance-profile credentials.
+
+An initial attempt treated the Gateway Endpoint like a route-table association
+target and AWS rejected it. The correct model is to pass the route table to the
+Gateway Endpoint resource, which causes AWS to manage the prefix-list route.
+
+### GCP Network Path to S3
+
+- Added an S3 Interface Endpoint with one ENI in `eu-west-2a`.
+- Added a dedicated endpoint security group permitting TCP/443 from
+  `10.30.0.0/24`.
+- Disabled private DNS and used the endpoint-specific S3 DNS name explicitly.
+- A request from GCP returned HTTP `403`, proving DNS, VPN routing, endpoint SG,
+  TLS and S3 service reachability before GCP had AWS credentials.
+
+The `403` was useful positive network evidence: the service responded and the
+remaining problem was authorization, not routing.
+
+## 2026-10-13 - Phase 5: workload identity design
+
+### Decisions
+
+- Selected workload identity federation instead of copying static AWS access
+  keys to GCP.
+- Attached a dedicated Google service account to the GCE instance.
+- Chose a workload-specific OIDC audience,
+  `urn:multicloud-lab:gcp-to-aws:s3`.
+- Used the GCE metadata identity endpoint because it can issue an identity token
+  for the attached service account without Internet access.
+- Used AWS's built-in Google identity provider, `accounts.google.com`, rather
+  than creating an `aws_iam_openid_connect_provider` resource.
+
+### Claim Mapping
+
+AWS's Google-specific mapping was designed around these token claims:
+
+- Google `azp` maps to the AWS condition key `accounts.google.com:aud`.
+- Google `aud` maps to `accounts.google.com:oaud` when `azp` is present.
+- Google `sub` maps to `accounts.google.com:sub`.
+
+The role trust therefore pins both the service account numeric identity and the
+custom audience. Tokens themselves were decoded only for diagnosis and were
+not committed or copied into documentation.
+
+## 2026-10-16 - Phase 5: private STS path
+
+### Problem
+
+OIDC provides identity but the GCP VM still needs network reachability to AWS
+STS to exchange that identity for temporary AWS credentials.
+
+### Decision
+
+- Compared Internet egress through NAT with an STS Interface Endpoint.
+- Retained a fully private AWS service path by adding STS PrivateLink.
+- Deferred GCP Cloud NAT to the later private-versus-public traffic phase.
+- Accepted the hourly cost of two Interface Endpoints because the private path
+  has greater learning value for this iteration.
+
+The GCP VM must call endpoint-specific STS DNS because private DNS is disabled.
+The same security group and VPN return route used by the S3 endpoint support
+the STS endpoint.
+
+## 2026-10-17 - Phase 5: IAM and bootstrap preparation
+
+### Built and Diagnosed
+
+- Added the AWS federated role and attached the same broad lab S3 policy.
+- Added the STS Interface Endpoint in the AWS private subnet.
+- Reused one endpoint security group; one ingress-rule resource belongs to one
+  SG, while both endpoints can attach that SG.
+- An apply partially created endpoint resources but IAM rejected the trust
+  policy with `MalformedPolicyDocument`.
+- The policy had interpolated the entire Terraform service-account resource
+  where IAM required a scalar string. Referencing the service account
+  `unique_id` produced the expected JSON condition values.
+- Began preparing the AWS CLI v2 archive for the GCP VM. An SCP attempt exposed
+  incorrect remote-destination syntax and motivated a repeatable bootstrap
+  path through Cloud Storage instead.
+
+Partial Terraform applies were treated as non-transactional: successful
+endpoints remained present and billable while the IAM error was corrected.
+
+## 2026-10-18 - Phase 5: Cloud Storage bootstrap and end-to-end validation
+
+### Cloud Storage Bootstrap
+
+- Created GCS bucket `multicloud-lab-test` with uniform bucket-level access.
+- Uploaded `awscliv2.zip` as a Terraform-managed object.
+- Granted the VM service account `roles/storage.objectViewer` on the bucket.
+- Enabled Private Google Access on subnet `10.30.0.0/24`.
+- Added explicit route `0.0.0.0/0 -> default-internet-gateway` because the VPC
+  deletes default routes on creation.
+- Confirmed that this route plus Private Google Access reaches Google APIs but
+  does not provide general Internet access to a VM without an external IP or
+  Cloud NAT.
+- Added a metadata startup script that downloads the archive, extracts it under
+  `/tmp` and installs AWS CLI under `/usr/local`.
+
+The guest agent runs the startup script as root. Its working directory is not a
+portable interface, so the final script uses absolute paths. Startup logs
+showed a successful Cloud Storage copy and AWS CLI installation; a later check
+reported AWS CLI `2.38.1` on Debian 12. Cloud Logging export itself lacked
+`logging.logEntries.create`, but the local systemd journal retained the output.
+
+### Problems and Diagnosis
+
+- Private Google Access alone did not create a route. The VM initially timed
+  out against Cloud Storage until the explicit default route was present.
+- `storage.googleapis.com` initially exposed IPv6 results while the subnet was
+  IPv4-only; an IPv4 check after routing was added returned an HTTP response.
+- Terraform initially could not find `../artifacts/awscliv2.zip`; the local
+  archive and configured source path had to be aligned.
+- After network reachability, bucket IAM was a separate requirement. Routing
+  and authorization were tested independently.
+
+### End-to-End AWS Test
+
+The user validated the complete private sequence from GCE:
+
+1. Request a Google OIDC identity token from the metadata server.
+2. Call the STS Interface Endpoint across the VPN.
+3. Assume `multicloud-lab-gcp-vm-role` with web identity.
+4. Receive expiring AWS credentials.
+5. Call the S3 Interface Endpoint across the VPN.
+6. List buckets and objects and download an object from S3.
+
+No token, access key, session token or VPN PSK was persisted in the repository.
+
+### Result, Cost and Remaining Resources
+
+Phase 5 is complete. EC2 accesses S3 through a free Gateway Endpoint and its
+instance profile. GCE bootstraps AWS CLI from Cloud Storage, federates its
+Google identity into AWS and reaches STS and S3 through private Interface
+Endpoints over the VPN.
+
+The active lab costs approximately `EUR 4-5/day`, dominated by the AWS VPN,
+two GCP VPN tunnels, two AWS Interface Endpoints and the two small VMs. S3/GCS
+storage, requests and test traffic add small variable charges. The VPN,
+Interface Endpoints, VMs, disks and buckets remain running until the user
+executes `terraform destroy` and provider inventories confirm cleanup.
+
+### Limitations and Next Step
+
+- IAM and endpoint policies are intentionally broad for the lab.
+- Interface Endpoints are single-AZ and the VPN still uses only GCP HA VPN
+  interface `0`.
+- The latest local startup-script cleanup change would replace the GCE instance
+  if applied; no apply was performed as part of documentation closure.
+- There are no VPC Flow Logs yet. Phase 6 will add bounded cloud-native
+  observability and correlate one controlled flow across both clouds.

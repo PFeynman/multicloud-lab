@@ -114,3 +114,57 @@ VPN connection and use GCP interface 1, bringing the total to four tunnels.
   - Hourly tunnel charges, external IP treatment and data transfer pricing.
 - [AWS VPN pricing](https://aws.amazon.com/vpn/pricing/)
   - Site-to-Site VPN connection-hour, public IPv4 and data transfer charges.
+
+## Phase 4 - Private workload connectivity
+
+Sources reviewed on 2026-10-11 and 2026-10-12.
+
+- [AWS security group rules](https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html)
+  - Stateful filtering, ICMP types and separate ingress/egress authorization.
+- [Google Cloud VPC firewall rules](https://cloud.google.com/firewall/docs/firewalls)
+  - Implied rules, stateful behavior, targets and source ranges.
+- [Google Cloud dynamic routing](https://cloud.google.com/network-connectivity/docs/router/concepts/overview)
+  - How Cloud Router installs learned BGP routes used by workload traffic.
+
+## Phase 5 - Private service access and workload federation
+
+Sources reviewed between 2026-10-12 and 2026-10-18.
+
+### AWS VPC endpoints and S3
+
+- [AWS Gateway endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/gateway-endpoints.html)
+  - Route-table association and managed prefix-list behavior.
+- [AWS Gateway endpoints for S3](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)
+  - S3-specific routing, security-group and transitivity constraints.
+- [AWS Interface endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/create-interface-endpoint.html)
+  - Endpoint ENIs, subnets, security groups, DNS and endpoint policies.
+- [AWS PrivateLink pricing](https://aws.amazon.com/privatelink/pricing/)
+  - Interface endpoint AZ-hours and per-GB processing tiers.
+- [IAM roles for Amazon EC2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html)
+  - Instance profiles and temporary workload credentials.
+
+### Google identity federation into AWS
+
+- [AWS STS AssumeRoleWithWebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html)
+  - Token exchange semantics, temporary credentials and session identity.
+- [AWS IAM OIDC federation](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html)
+  - Web identity role trust and OIDC condition keys.
+- [AWS available keys for OIDC federation](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html#condition-keys-wif)
+  - Provider claim mapping, including Google `aud`, `azp` and `sub` behavior.
+- [GCE instance identity](https://cloud.google.com/compute/docs/instances/verifying-instance-identity)
+  - Metadata-server identity tokens, audiences and token verification.
+- [GCE service accounts](https://cloud.google.com/compute/docs/access/service-accounts)
+  - Attached identities, OAuth scopes and IAM authorization.
+
+### Private Google Access and startup scripts
+
+- [Private Google Access](https://cloud.google.com/vpc/docs/private-google-access)
+  - Requirements for internal-only VMs to reach Google APIs and services.
+- [Configure Private Google Access](https://cloud.google.com/vpc/docs/configure-private-google-access)
+  - Subnet setting, routing and DNS alternatives.
+- [GCE startup scripts](https://cloud.google.com/compute/docs/instances/startup-scripts/linux)
+  - Metadata startup-script execution and guest-agent logging.
+- [Cloud Storage IAM roles](https://cloud.google.com/storage/docs/access-control/iam-roles)
+  - `roles/storage.objectViewer` permissions used by the bootstrap service account.
+- [Cloud Storage pricing](https://cloud.google.com/storage/pricing)
+  - Stored data, operations, network transfer and soft-delete considerations.
