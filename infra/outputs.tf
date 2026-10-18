@@ -37,3 +37,18 @@ output "eice_id" {
   description = "ID of the AWS EC2 Instance Connect Endpoint (EICE)."
   value       = aws_ec2_instance_connect_endpoint.multicloud_lab_eice.id
 }
+
+output "aws_s3_bucket_name" {
+  description = "Name of the temporary S3 bucket used to test private connectivity."
+  value       = aws_s3_bucket.connectivity_test.bucket
+}
+
+output "s3_interface_endpoint_dns" {
+  description = "DNS name of the AWS S3 interface endpoint."
+  value       = aws_vpc_endpoint.s3_interface.dns_entry
+}
+
+output "sts_interface_endpoint_dns" {
+  description = "DNS name of the AWS STS interface endpoint."
+  value       = aws_vpc_endpoint.sts_interface.dns_entry
+}

@@ -72,6 +72,19 @@ resource "aws_vpc_security_group_ingress_rule" "allow_icmp" {
   }
 }
 
+resource "aws_vpc_security_group_egress_rule" "allow_https" {
+  security_group_id = aws_security_group.multicloud_lab_vm_sg.id
+
+  prefix_list_id = aws_vpc_endpoint.s3_gateway.prefix_list_id
+  ip_protocol    = "tcp"
+  from_port      = 443
+  to_port        = 443
+
+  tags = {
+    Name = "allow_https"
+  }
+}
+
 resource "aws_security_group" "multicloud_lab_eice_sg" {
   name        = "multicloud-lab-eice-sg"
   description = "Security group for the multicloud lab EICE."
@@ -107,12 +120,18 @@ resource "aws_ec2_instance_connect_endpoint" "multicloud_lab_eice" {
   }
 }
 
+resource "aws_iam_instance_profile" "multicloud_lab_vm_instance_profile" {
+  name = "multicloud-lab-vm-instance-profile"
+  role = aws_iam_role.multicloud_lab_vm_role.name
+}
+
 resource "aws_instance" "multicloud_lab_vm" {
   ami                    = data.aws_ami.al2023_arm64.id
   instance_type          = "t4g.nano"
   subnet_id              = aws_subnet.private_subnet.id
   vpc_security_group_ids = [aws_security_group.multicloud_lab_vm_sg.id]
   private_ip             = "10.10.0.10"
+  iam_instance_profile   = aws_iam_instance_profile.multicloud_lab_vm_instance_profile.name
 
   credit_specification {
     cpu_credits = "standard"

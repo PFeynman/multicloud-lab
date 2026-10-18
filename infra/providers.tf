@@ -27,3 +27,7 @@ provider "google" {
 
   user_project_override = false
 }
+
+data "aws_region" "current" {}
+
+data "google_project" "current" {}

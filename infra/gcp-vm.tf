@@ -1,3 +1,8 @@
+resource "google_service_account" "multicloud_lab_vm_sa" {
+  account_id   = "multicloud-lab-vm-sa"
+  display_name = "Multicloud Lab VM Service Account"
+}
+
 resource "google_compute_instance" "multicloud_lab_vm" {
   name         = "multicloud-lab-vm"
   zone         = "europe-west2-a"
@@ -17,6 +22,13 @@ resource "google_compute_instance" "multicloud_lab_vm" {
     subnetwork = google_compute_subnetwork.private_subnet.id
     network_ip = "10.30.0.10"
   }
+
+  service_account {
+    email  = google_service_account.multicloud_lab_vm_sa.email
+    scopes = ["cloud-platform"]
+  }
+
+  metadata_startup_script = file("${path.module}/../artifacts/install-awscli.sh")
 
   tags = ["iap-ssh"]
 }
