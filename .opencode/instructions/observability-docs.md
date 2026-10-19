@@ -70,6 +70,19 @@ read-only/no-edit requests, provide the proposed entry instead of editing.
 Each iteration subsection should concisely capture the relevant items below
 (omit inapplicable details rather than adding boilerplate):
 
+Treat the journal as a learning record, not a transcript or execution log.
+Prefer a few short bullets covering the outcome, important decisions and
+reusable lessons. Scale detail to the learning value of the iteration; simple
+refactors or workflow changes normally need only a brief summary.
+Record errors and unsuccessful attempts only when they teach a meaningful
+concept, explain a consequential decision or preserve a useful diagnostic
+lesson. Omit routine slips such as unsaved files, typos and immediately
+corrected command syntax unless they reveal a deeper issue.
+Summarize routine checks together rather than listing every tool call, hash or
+intermediate result. Include exact commands or output only when needed to
+reproduce an experiment or support an important conclusion. Do not repeat the
+plan, expected evidence and final result when one outcome summary suffices.
+
 - date/phase;
 - objective;
 - status: complete, in progress or blocked, and any missing evidence;

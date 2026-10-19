@@ -12,6 +12,10 @@ objective and expected evidence before starting. End it with an explicit status:
 complete, in progress or blocked, plus the next small step. Record meaningful
 decisions and unsuccessful attempts as well as successful deployments.
 
+Keep journal entries proportional to their learning value. Preserve meaningful
+decisions and diagnostic lessons, not every minor mistake or execution step;
+follow the concise journal guidance in `observability-docs.md`.
+
 ## Teaching style
 
 For important choices such as static routes vs BGP, NAT vs public IP, HA VPN design, route propagation, or observability approaches:
