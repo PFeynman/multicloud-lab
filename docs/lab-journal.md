@@ -576,3 +576,31 @@ executes `terraform destroy` and provider inventories confirm cleanup.
 - **Next step:** restart OpenCode to load the instructions, then begin the
   separately agreed Terraform organization and locals review. No refactor or
   next roadmap phase is implemented by this iteration.
+
+### Terraform review - Iteration 2: file organization
+
+- **Objective:** separate AWS endpoints, GCP API enablement and GCP bootstrap
+  into cohesive files while preserving resource labels and configuration.
+- **Status:** complete for file-only organization; user moved the resources,
+  source comparison and configuration checks passed. No deployment was required.
+- Consulted HashiCorp's configuration structure documentation and recorded it
+  in `docs/references.md`. All files remain in the same root module, `infra/`.
+- Proposed extracting endpoint blocks from `aws-network.tf` into
+  `aws-endpoints.tf`, API resources from `gcp-network.tf` into `gcp-services.tf`,
+  and renaming `gcp-cs.tf`; the user chose `gcp-vm-bootstrap.tf` as its name.
+- Keep locals, dependency changes and unused-data-source removal separate from
+  this file-only change so its semantic equivalence can be reviewed directly.
+- Expected evidence: unchanged resource blocks and addresses, passing format
+  and validation checks, and no plan differences attributable to file moves.
+- The first validation found an undeclared Compute API resource because the
+  editor buffer for `gcp-services.tf` had not been saved. The user saved it;
+  `terraform fmt -check -recursive` and `terraform validate` then passed.
+- The bootstrap file has the identical Git blob hash as the former `gcp-cs.tf`.
+  Extracted endpoint and API blocks match their originals when ignoring
+  whitespace. Resource labels, attributes and references are preserved.
+- `git diff --check` passed. `terraform state list` returned no addresses, so
+  a live no-change plan cannot be used as evidence of this refactor. No plan
+  was run; source equivalence supports the file-only conclusion.
+- Live inventory and running costs were not verified; empty state is not proof
+  of cloud cleanup. File organization itself adds no billable resources.
+- **Next step:** separately introduce the agreed small set of topology locals.

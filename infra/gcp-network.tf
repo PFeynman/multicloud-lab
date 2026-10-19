@@ -18,35 +18,6 @@ resource "google_compute_subnetwork" "private_subnet" {
   stack_type               = "IPV4_ONLY"
 }
 
-resource "google_project_service" "compute" {
-  service = "compute.googleapis.com"
-
-  disable_on_destroy = false
-  depends_on         = [google_project_service.cloud_resource_manager]
-}
-
-resource "google_project_service" "service_usage" {
-  provider = google.bootstrap
-  service  = "serviceusage.googleapis.com"
-
-  disable_on_destroy = false
-}
-
-resource "google_project_service" "cloud_resource_manager" {
-  provider = google.bootstrap
-  service  = "cloudresourcemanager.googleapis.com"
-
-  disable_on_destroy = false
-  depends_on         = [google_project_service.service_usage]
-}
-
-resource "google_project_service" "iam" {
-  provider = google.bootstrap
-  service  = "iam.googleapis.com"
-
-  disable_on_destroy = false
-}
-
 resource "google_compute_route" "internet_route" {
   name             = "internet-route"
   dest_range       = "0.0.0.0/0"

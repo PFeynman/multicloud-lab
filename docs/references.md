@@ -1,5 +1,13 @@
 # References
 
+## Terraform organization review
+
+- [Files and configuration structure](https://developer.hashicorp.com/terraform/language/files)
+  - Reviewed 2026-10-19. Focus on **Directories and Modules**: Terraform treats
+    all top-level configuration files in a module as one document. Moving
+    unchanged blocks between files is an organizational change, not a resource
+    migration.
+
 This bibliography collects the primary sources used during the lab. Entries
 are grouped by phase and explain why each source is relevant. Product behavior
 and pricing can change, so the access date is part of the record.
