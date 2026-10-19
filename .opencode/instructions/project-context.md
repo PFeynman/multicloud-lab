@@ -37,6 +37,10 @@ Preserve non-overlapping address space as the lab evolves.
 
 ## Roadmap
 
+This is curriculum order, not authoritative completion or deployment status.
+Read README, the lab journal, configuration/state and relevant cloud evidence
+before choosing an iteration. Cleanup does not reset completed phases.
+
 - Phase 0: safely prepare AWS and a dedicated GCP project, CLIs, credentials, billing/cost safeguards, Terraform providers.
 - Phase 1: create dedicated AWS and GCP networks.
 - Phase 2: deploy minimal workloads and study local routing.

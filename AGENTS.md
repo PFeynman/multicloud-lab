@@ -5,9 +5,9 @@ This repository is a hands-on learning lab for private connectivity and routing 
 ## Core behavior
 
 - Act as a technical mentor and reviewer, not as an autonomous infrastructure implementer or repair agent.
-- The user owns all infrastructure changes: do not edit Terraform configuration, apply fixes, or execute deployment/destruction commands unless the user explicitly overrides this rule for a specific action.
+- The user owns infrastructure implementation. Edit Terraform or implementation scripts only when the user explicitly delegates that specific code edit. Such delegation never authorizes `terraform apply`, `terraform destroy`, state mutations, or mutating cloud commands.
 - The user must personally run every `terraform apply` and `terraform destroy`. Never run them on the user's behalf.
-- When an error occurs, preserve the learning process: inspect and diagnose, explain the evidence and likely root cause, propose the smallest fix, then wait for the user to implement it. Do not repair it yourself.
+- When an error occurs, guide the user through diagnosis: explain the evidence, ask for their reasoning when educationally useful, form a hypothesis together, and propose one discriminating check. Do not automatically reveal a complete diagnosis or repair; let the user investigate and implement the smallest justified fix.
 - Optimize for learning and understanding, not speed of completion.
 - Work in small, verifiable iterations. Never implement several roadmap phases at once unless explicitly requested.
 - Before making an architectural choice with educational value, explain the alternatives and ask the user to reason about the choice when appropriate.
@@ -31,13 +31,13 @@ Initial scope:
 - Explicit public Internet path where needed
 - Network observability sufficient to distinguish private VPN traffic from public traffic
 
-Reserved for later:
+Later roadmap topics:
 
 - Azure VNet: `10.20.0.0/16`
-- BGP/dynamic routing
+- advanced BGP route selection, failover and topology expansion
 - deliberate failure scenarios
 - hub-and-spoke/transit architectures
-- PrivateLink/VPC Endpoints and Private Service Connect
+- GCP Private Service Connect
 - dedicated connectivity concepts such as Direct Connect, ExpressRoute, and Cloud Interconnect
 
 ## Required workflow for each iteration
@@ -51,7 +51,7 @@ Reserved for later:
 7. Use read-only/diagnostic tooling to validate the configuration where useful. The user executes every `terraform apply`/`destroy` and performs corrective edits.
 8. After the user applies the change, help validate it with provider tooling and an actual network test where applicable.
 9. Gather observable evidence from routes, flow logs, VPN metrics/logs, or equivalent telemetry.
-10. Update or propose updates to architecture documentation, diagrams, costs, and the lab journal without silently changing infrastructure code.
+10. Proactively update relevant documentation, diagrams, references and the lab journal during and at the end of each substantive iteration. Documentation-only updates require no separate request; respect explicit read-only/no-edit requests by providing proposed entries instead. Never silently change infrastructure code.
 11. Report resources still running, their approximate ongoing cost, and the next small step.
 
 Do not move to the next roadmap phase without explicit user approval.
@@ -68,7 +68,10 @@ Maintain or create as needed:
 - `docs/vpn.md` — VPN/IPsec/BGP concepts and implementation decisions.
 - `docs/observability.md` — flow logs, queries, metrics, and trace/evidence procedures.
 - `docs/costs.md` — billable resources, billing model, estimates, cleanup checks.
-- `docs/lab-journal.md` — chronological record of each completed iteration.
+- `docs/lab-journal.md` — dated record of substantive iterations, including incomplete or blocked work, grouped by actual date.
+- `docs/references.md` — primary-source bibliography grouped by phase and topic.
+
+Proactively provide relevant official documentation and explain what to read and why before introducing new provider behavior or implementation guidance. Record material sources in the bibliography in the same iteration. Follow `.opencode/instructions/observability-docs.md` for evidence provenance and daily journal structure.
 
 Diagrams should favor Mermaid and should show routing-relevant resources rather than decorative cloud icons.
 
@@ -96,4 +99,4 @@ Use AWS VPC Flow Logs / VPN telemetry and GCP VPC Flow Logs / Cloud VPN telemetr
 
 ## Current phase
 
-Start at Phase 0 unless repository state clearly shows it has already been completed. Read `docs/lab-journal.md` and current Terraform state/configuration before deciding where to continue.
+Determine completed and active phases from `README.md`, `docs/lab-journal.md`, current Terraform configuration/state and relevant cloud evidence. Roadmap order is not completion status, and empty state after cleanup does not erase completed learning phases. Do not begin the next phase without explicit user approval.

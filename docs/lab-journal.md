@@ -544,3 +544,35 @@ executes `terraform destroy` and provider inventories confirm cleanup.
   if applied; no apply was performed as part of documentation closure.
 - There are no VPC Flow Logs yet. Phase 6 will add bounded cloud-native
   observability and correlate one controlled flow across both clouds.
+
+## 2026-10-19
+
+### Workflow improvement - Iteration 1: methodical mentoring and documentation
+
+- **Objective:** make primary-source guidance, evidence provenance and journal
+  maintenance proactive while preserving user ownership of implementation.
+- **Status:** complete; checked instruction consistency and `git diff --check`.
+- Updated `AGENTS.md` and the four existing files under
+  `.opencode/instructions/`; `opencode.json` already loads those files and did
+  not require a change.
+- Removed the contradiction between requested-only documentation edits and
+  proactive journal/bibliography maintenance. Documentation updates now require
+  no separate request, while explicit read-only instructions remain respected.
+- Defined a substantive iteration, including design, diagnosis, validation,
+  blocked work and workflow improvements. Future entries reuse the actual day's
+  heading with named iteration subsections rather than adding one per message.
+- Required proactive primary documentation with reading guidance, same-iteration
+  bibliography updates, and clear separation of observations, user reports,
+  configuration intent and inference.
+- Strengthened guided diagnosis: one hypothesis/check at a time, giving the
+  user room to reason before revealing a complete diagnosis or repair.
+- Clarified that delegation of a code edit never permits apply, destroy, state
+  mutation or mutating cloud commands. Added protection for sensitive diagnostic
+  output and provenance requirements for material cost estimates.
+- Corrected stale BGP/PrivateLink roadmap wording and made phase detection
+  independent of deployment cleanup.
+- No infrastructure changes or cloud inventory checks were performed. Current
+  running resources and ongoing cost were not verified in this iteration.
+- **Next step:** restart OpenCode to load the instructions, then begin the
+  separately agreed Terraform organization and locals review. No refactor or
+  next roadmap phase is implemented by this iteration.

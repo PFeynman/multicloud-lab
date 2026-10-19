@@ -9,6 +9,7 @@
 - Confirm active AWS identity/profile and GCP account/project before impactful operations.
 - Prefer explicit provider configuration and variables over ambient assumptions.
 - Never put credentials, service-account keys, private SSH keys, access tokens, Terraform state, or sensitive tfvars in Git.
+- Treat state, plans, logs and diagnostic output as potentially sensitive. Prefer targeted queries over broad state dumps. Never reproduce credentials, tokens, VPN PSKs, private keys or sensitive state values in responses, documentation or retained evidence; redact them before preservation.
 - Do not expose SSH/RDP or arbitrary services to `0.0.0.0/0` unless explicitly justified and accepted.
 
 ## Cost philosophy
@@ -28,6 +29,10 @@ When choosing between alternatives, use this priority:
 Prefer the cheaper alternative when it provides approximately the same learning value, but do not optimize obsessively for zero cost. Paid resources such as VPN gateways, public IPv4 addresses, small VMs, VPC endpoints, Private Service Connect, flow logs, logging and monitoring are acceptable when useful to the lab.
 
 ## Cost awareness
+
+For material estimates, state the region, currency/conversion assumption and
+review date, and consult a primary pricing source. Label estimates as approximate
+and record the source in `docs/references.md`.
 
 Before introducing a resource with a meaningful recurring or variable cost, explain briefly:
 

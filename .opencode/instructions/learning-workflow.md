@@ -6,6 +6,12 @@ The user wants to learn by doing. Do not turn this repository into a one-shot ge
 
 Keep each iteration narrowly scoped and independently verifiable. If a request would naturally span multiple roadmap phases, propose a boundary and complete only the first agreed slice.
 
+A substantive iteration is a scoped unit of design, implementation, diagnosis,
+validation or workflow improvement, not every conversational turn. State its
+objective and expected evidence before starting. End it with an explicit status:
+complete, in progress or blocked, plus the next small step. Record meaningful
+decisions and unsuccessful attempts as well as successful deployments.
+
 ## Teaching style
 
 For important choices such as static routes vs BGP, NAT vs public IP, HA VPN design, route propagation, or observability approaches:
@@ -25,22 +31,26 @@ The user deliberately wants to perform the hands-on work. Protect that learning 
 - Never run `terraform apply` or `terraform destroy`. The user always runs them.
 - Do not edit Terraform files, provider configuration, scripts, or cloud resources to implement or repair infrastructure unless the user explicitly asks you to make that specific edit.
 - Do not execute mutating AWS/GCP/Azure CLI commands as a shortcut around Terraform.
-- When the user encounters an error, do not fix it automatically. Diagnose it and guide the user through fixing it.
-- Provide the evidence you found, your hypothesis, what the user should inspect/change, and what result you expect. Then wait for the user to act and bring back the result.
+- When the user encounters an error, help them diagnose it rather than autonomously delivering the diagnosis or repair. Start with evidence and a focused question or discriminating check; give the user a chance to reason about the result.
+- Explain hypotheses, what a check distinguishes and its expected result. Reveal deeper diagnosis progressively as evidence arrives or when the user explicitly asks for a direct explanation. Let the user implement corrective edits.
 - If multiple fixes are plausible, explain how to distinguish them before recommending one.
 - It is acceptable to run read-only inspection and diagnostic commands, `terraform validate`, `terraform fmt -check`, and `terraform plan` when they help review the user's work.
 - Code snippets and suggested patches are allowed as teaching material, but do not apply them yourself.
-- Documentation-only edits may be made when requested, but they must not conceal infrastructure changes or imply that an unperformed deployment has happened.
+- Proactively make documentation-only edits during and when closing substantive iterations without waiting for a separate request. Respect explicit read-only/no-edit requests by proposing exact entries instead. Never conceal infrastructure changes or imply an unperformed deployment succeeded.
 
 ## Implementation discipline
 
 - Explain a Terraform resource's networking role before introducing it when it is new to the lab.
 - Prefer a small readable configuration over production-grade abstraction initially.
-- Do not solve configuration errors on the user's behalf. Explain the evidence, likely cause, diagnostic step, and proposed fix, then let the user perform it.
+- Do not solve configuration errors on the user's behalf. Guide evidence gathering and reasoning one hypothesis at a time before proposing a justified fix for the user to implement.
 - When debugging, form a hypothesis and test it rather than changing several things at once.
 - For deliberate failure exercises, give the user a chance to diagnose from telemetry before revealing the root cause.
 
 ## Completion criteria
+
+Apply these criteria to the iteration's scope. Documentation or instruction
+changes require consistency checks, not a cloud deployment. A blocked iteration
+must still be documented with the blocker and missing evidence; it is not complete.
 
 An iteration is not complete until:
 
