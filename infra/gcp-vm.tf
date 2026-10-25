@@ -1,6 +1,10 @@
 resource "google_service_account" "multicloud_lab_vm_sa" {
   account_id   = "multicloud-lab-vm-sa"
   display_name = "Multicloud Lab VM Service Account"
+
+  depends_on = [
+    google_project_service.iam
+  ]
 }
 
 resource "google_compute_instance" "multicloud_lab_vm" {
@@ -31,6 +35,12 @@ resource "google_compute_instance" "multicloud_lab_vm" {
   metadata_startup_script = file("${path.module}/../artifacts/install-awscli.sh")
 
   tags = ["iap-ssh"]
+
+  depends_on = [
+    google_storage_bucket_iam_member.vm_read_bucket,
+    google_compute_route.internet_route,
+    google_storage_bucket_object.aws_cli
+  ]
 }
 
 resource "google_compute_firewall" "allow_iap_ssh" {

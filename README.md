@@ -104,8 +104,9 @@ The AWS Default VPC and every unrelated GCP project are out of scope.
 - Google Cloud CLI using configuration `multicloud-lab`
 - Application Default Credentials with quota project `multicloud-lab-prp`
 - A local `artifacts/awscliv2.zip` used to publish AWS CLI to the GCS bucket.
-  The binary is not versioned; download it from AWS and verify it before
-  applying the configuration.
+  The preflight downloads the Linux x86-64 archive from AWS if it is missing
+  and reuses existing files. The binary is not versioned; signature verification
+  remains a manual step before applying the configuration.
 
 ## Safe Verification
 

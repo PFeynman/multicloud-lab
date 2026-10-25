@@ -265,3 +265,26 @@ current inventory. Historical results are retained as the lab evolves.
 - Applied the policy retrospectively across the journal, preserving chronology,
   historical results and meaningful diagnostic lessons. Consistency and whitespace
   checks passed. No infrastructure changes or live cost checks were performed.
+
+## 2026-10-25
+
+### Terraform review - Iteration 3: topology locals
+
+- **Complete for configuration review:** user centralized provider selection,
+  regions/zones, CIDRs, workload IPs and ASNs in `infra/locals.tf`, preserving
+  original values and resource references. Removed unused region/project data
+  sources. Formatting, validation and whitespace checks passed.
+- State listed no resources; no plan or live inventory was checked, so this
+  establishes source consistency rather than current deployment behavior or
+  cleanup. Recorded on this date; individual edit timestamps were not recovered.
+- **Next:** review hidden bootstrap dependencies, then update operational
+  outputs and verification tooling. No billable resources were introduced.
+
+### Bootstrap tooling - Conditional AWS CLI download
+
+- Added user-requested archive preparation to preflight: download the official
+  Linux x86-64 ZIP only when absent, with repository-relative destination,
+  bounded transfer time and temporary-file cleanup on failure.
+- Updated README and references. Shell syntax and whitespace checks passed;
+  full preflight and live download were not run. Existing archives are reused;
+  version pinning and signature verification remain separate improvements.

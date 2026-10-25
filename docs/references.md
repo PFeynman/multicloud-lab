@@ -2,6 +2,10 @@
 
 ## Terraform organization review
 
+- [Installing or updating AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+  - Reviewed 2026-10-25. Linux x86-64 ZIP download URL and optional PGP
+    verification; used for conditional local artifact preparation in preflight.
+
 - [Files and configuration structure](https://developer.hashicorp.com/terraform/language/files)
   - Reviewed 2026-10-19. Focus on **Directories and Modules**: Terraform treats
     all top-level configuration files in a module as one document. Moving

@@ -80,3 +80,18 @@ fi
 echo "AWS account verified: $aws_account"
 echo "GCP configuration verified: $gcp_account, $gcp_project, $gcp_region"
 echo "ADC verified: $adc_account, quota project $adc_quota_project"
+
+if [[ ! -f "$REPO_ROOT/artifacts/awscliv2.zip" ]]; then
+  (
+    echo "Downloading AWS CLI v2 for the GCP VM (Linux x86-64)..."
+    mkdir -p "$REPO_ROOT/artifacts"
+    archive_tmp="$(mktemp "$REPO_ROOT/artifacts/.awscliv2.zip.XXXXXX")"
+    trap 'rm -f -- "$archive_tmp"' EXIT
+    curl --fail --location --show-error --connect-timeout 10 --max-time 300 \
+      --output "$archive_tmp" \
+      https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+    mv -- "$archive_tmp" "$REPO_ROOT/artifacts/awscliv2.zip"
+  )
+else
+  echo "AWS CLI archive already exists; skipping download."
+fi
