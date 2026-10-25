@@ -1,5 +1,5 @@
 resource "aws_vpc" "multicloud_lab_vpc" {
-  cidr_block           = "10.10.0.0/16"
+  cidr_block           = local.aws_vpc_cidr
   enable_dns_hostnames = false
   enable_dns_support   = true
   instance_tenancy     = "default"
@@ -12,8 +12,8 @@ resource "aws_vpc" "multicloud_lab_vpc" {
 resource "aws_subnet" "private_subnet" {
   vpc_id = aws_vpc.multicloud_lab_vpc.id
 
-  cidr_block        = "10.10.0.0/24"
-  availability_zone = "eu-west-2a"
+  cidr_block        = local.aws_private_subnet_cidr
+  availability_zone = local.aws_az
 
   map_public_ip_on_launch = false
 

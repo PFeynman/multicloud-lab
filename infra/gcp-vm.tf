@@ -5,7 +5,7 @@ resource "google_service_account" "multicloud_lab_vm_sa" {
 
 resource "google_compute_instance" "multicloud_lab_vm" {
   name         = "multicloud-lab-vm"
-  zone         = "europe-west2-a"
+  zone         = local.gcp_zone
   machine_type = "e2-micro"
 
   boot_disk {
@@ -20,7 +20,7 @@ resource "google_compute_instance" "multicloud_lab_vm" {
 
   network_interface {
     subnetwork = google_compute_subnetwork.private_subnet.id
-    network_ip = "10.30.0.10"
+    network_ip = local.gcp_vm_ip
   }
 
   service_account {

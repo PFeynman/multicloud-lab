@@ -10,7 +10,7 @@ resource "aws_customer_gateway" "multicloud_lab" {
 
 resource "aws_vpn_gateway" "multicloud_lab" {
   vpc_id          = aws_vpc.multicloud_lab_vpc.id
-  amazon_side_asn = 65433
+  amazon_side_asn = local.aws_asn
 
   tags = {
     Name = "multicloud-lab-1"

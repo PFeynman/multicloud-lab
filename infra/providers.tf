@@ -1,6 +1,6 @@
 provider "aws" {
-  profile = "multicloud-lab"
-  region  = "eu-west-2"
+  profile = local.aws_profile
+  region  = local.aws_region
 
   default_tags {
     tags = {
@@ -12,22 +12,18 @@ provider "aws" {
 }
 
 provider "google" {
-  project = "multicloud-lab-prp"
-  region  = "europe-west2"
+  project = local.gcp_project
+  region  = local.gcp_region
 
-  billing_project       = "multicloud-lab-prp"
+  billing_project       = local.gcp_project
   user_project_override = true
 }
 
 # Enable bootstrap APIs without requiring quota APIs in the lab project first.
 provider "google" {
   alias   = "bootstrap"
-  project = "multicloud-lab-prp"
-  region  = "europe-west2"
+  project = local.gcp_project
+  region  = local.gcp_region
 
   user_project_override = false
 }
-
-data "aws_region" "current" {}
-
-data "google_project" "current" {}

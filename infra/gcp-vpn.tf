@@ -1,16 +1,16 @@
 resource "google_compute_ha_vpn_gateway" "multicloud_lab" {
   name    = "multicloud-lab-1"
   network = google_compute_network.multicloud_lab_vpc.id
-  region  = "europe-west2"
+  region  = local.gcp_region
 }
 
 resource "google_compute_router" "multicloud_lab" {
   name    = "multicloud-lab-1"
   network = google_compute_network.multicloud_lab_vpc.name
-  region  = "europe-west2"
+  region  = local.gcp_region
 
   bgp {
-    asn = 65432
+    asn = local.gcp_asn
   }
 }
 

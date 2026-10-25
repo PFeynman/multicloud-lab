@@ -130,7 +130,7 @@ resource "aws_instance" "multicloud_lab_vm" {
   instance_type          = "t4g.nano"
   subnet_id              = aws_subnet.private_subnet.id
   vpc_security_group_ids = [aws_security_group.multicloud_lab_vm_sg.id]
-  private_ip             = "10.10.0.10"
+  private_ip             = local.aws_vm_ip
   iam_instance_profile   = aws_iam_instance_profile.multicloud_lab_vm_instance_profile.name
 
   credit_specification {

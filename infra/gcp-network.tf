@@ -11,9 +11,9 @@ resource "google_compute_network" "multicloud_lab_vpc" {
 
 resource "google_compute_subnetwork" "private_subnet" {
   name                     = "private-subnet"
-  ip_cidr_range            = "10.30.0.0/24"
+  ip_cidr_range            = local.gcp_private_subnet_cidr
   private_ip_google_access = true
-  region                   = "europe-west2"
+  region                   = local.gcp_region
   network                  = google_compute_network.multicloud_lab_vpc.id
   stack_type               = "IPV4_ONLY"
 }
